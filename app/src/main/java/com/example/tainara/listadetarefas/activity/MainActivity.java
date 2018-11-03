@@ -1,9 +1,11 @@
 package com.example.tainara.listadetarefas.activity;
 
 import android.content.ContentValues;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
@@ -15,6 +17,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.AdapterView;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import com.example.tainara.listadetarefas.R;
 import com.example.tainara.listadetarefas.adapter.TarefaAdapter;
@@ -31,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private TarefaAdapter tarefaAdapter;
     private List<Tarefa> listaTarefas= new ArrayList<>();
+    private Tarefa tarefaSelecionada;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,12 +49,48 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.addOnItemTouchListener(new RecyclerItemClickListener(getApplicationContext(), recyclerView, new RecyclerItemClickListener.OnItemClickListener() {
             @Override
             public void onItemClick(View view, int position) {
-                Log.i( "clique ","onItemClick");
+                //Recuperar tarefa para edição
+                Tarefa tarefaSelecionada = listaTarefas.get(position);
+
+                //Envia tarefa para tela adicionar tarefa
+                Intent intent = new Intent(MainActivity.this,AdicionarTarefaActivity.class);
+                intent.putExtra("tarefaSelecionada",tarefaSelecionada);
+
+                startActivity(intent);
             }
 
             @Override
             public void onLongItemClick(View view, int position) {
-                Log.i( "clique ","onLongItemClick");
+
+                //recuperar a tarefa para deletar
+                tarefaSelecionada = listaTarefas.get(position);
+
+                AlertDialog.Builder dialog = new AlertDialog.Builder(MainActivity.this);
+
+                //Configurar titulo e mensagem
+                dialog.setTitle("Confirmar Exclusão");
+                dialog.setMessage("Deseja excluir a tarefa : " + tarefaSelecionada.getNomeTarefa()  + " ?");
+
+                dialog.setPositiveButton("Sim", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        TarefaDAO tarefaDAO = new TarefaDAO(getApplicationContext());
+                        if(tarefaDAO.deletar(tarefaSelecionada)){
+                            carregarListaTarefas();
+                            Toast.makeText(getApplicationContext(),"Tarefa Excluida!",Toast.LENGTH_SHORT).show();
+
+                        }else{
+                            Toast.makeText(getApplicationContext(),"Erro ao excluir Tarefa!",Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
+                dialog.setNegativeButton("Não",null);
+
+                //exibir dialog
+                dialog.create();
+                dialog.show();
+
             }
 
             @Override
@@ -81,7 +122,6 @@ public class MainActivity extends AppCompatActivity {
         //banco de dados
         DbHelper db= new DbHelper(getApplicationContext());
         ContentValues cv= new ContentValues();
-        cv.put("nome","teste");
         //metodo para a escrita no banco de dados
         db.getWritableDatabase().insert("tarefas", null, cv);
 
